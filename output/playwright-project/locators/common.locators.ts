@@ -8,8 +8,8 @@
 export const CommonLocators = {
   // ─── Sidebar Navigation ───────────────────────────────────────────────────
   sidebar: 'TODO-locator',   // main sidebar nav container
-  sidebarBaLink: 'TODO-locator',   // Sidebar → BA
-  sidebarQaLink: 'TODO-locator',   // Sidebar → QA
+  sidebarBaLink: 'a[href*="/v3/client/ba"], button:has-text("BA")',   // Sidebar → BA
+  sidebarQaLink: 'a[href*="/v3/client/qa"], button:has-text("QA")',   // Sidebar → QA
   sidebarFilesLink: 'TODO-locator',   // Sidebar → Files (KM)
   sidebarDashboardLink: 'TODO-locator',   // Sidebar → Dashboard
   sidebarThemeToggle: 'TODO-locator',   // theme toggle icon (bottom)

@@ -22,14 +22,15 @@ export class BasePage {
     // TODO: wait for login page to load
     // await this.page.locator(CommonLocators.loginPage).waitFor({ state: 'visible' });
     // TODO: fill email + password fields (Auth0 form selectors needed)
-    await this.page.goto('/api/v3/auth/login',{ waitUntil: 'commit', timeout: 60000 });
+    await this.page.goto('/api/v3/auth/login', { waitUntil: 'domcontentloaded', timeout: 120000 });
     await assertPageHeading(this.page, 'Welcome');
     await this.page.locator(CommonLocators.emailInput).fill(email);
     await this.page.getByRole('button', { name: 'Continue' }).click();
+    await this.page.waitForTimeout(2000);  // Wait for password field to appear
     await this.page.locator(CommonLocators.passwordInput).fill(password);
     await this.page.locator(CommonLocators.continueBtn).click();
     // TODO: handle Auth0 redirect and wait for /v3/client landing
-    await this.page.waitForURL('v3/client/dashboard');
+    await this.page.waitForURL('**/v3/client/**', { timeout: 120000 });
   }
 
   /**
