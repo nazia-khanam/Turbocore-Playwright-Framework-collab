@@ -431,6 +431,78 @@ export class QaPage extends BasePage {
     await expect(activityBlock).toContainText(todayTimePattern);
   }
 
+  async verifyStatusCommentRenderingRobustness(
+    actorName: string,
+    previousStatus: string,
+    updatedStatus: string,
+    comment: string,
+  ): Promise<void> {
+    const activityPattern = new RegExp(
+      `${this.escapeRegExp(actorName)}\\s+changed status from\\s+${this.escapeRegExp(previousStatus)}\\s+to\\s+${this.escapeRegExp(updatedStatus)}`,
+      'i',
+    );
+    const activityBlock = this.page.locator('article').filter({ hasText: activityPattern }).last();
+
+    await expect(activityBlock).toBeVisible({ timeout: 30000 });
+
+    const blockText = await activityBlock.innerText({ timeout: 30000 });
+    const normalizeWhitespace = (text: string) => text.replace(/\s+/g, ' ').trim();
+    await expect(normalizeWhitespace(blockText)).toContain(normalizeWhitespace(actorName));
+    await expect(normalizeWhitespace(blockText)).toContain(normalizeWhitespace(previousStatus));
+    await expect(normalizeWhitespace(blockText)).toContain(normalizeWhitespace(updatedStatus));
+    await expect(normalizeWhitespace(blockText)).toContain(normalizeWhitespace(comment));
+
+    const blockHtml = await activityBlock.innerHTML();
+    await expect(blockHtml).not.toContain('<script');
+    await expect(blockHtml).not.toContain('<img');
+    await expect(blockHtml).not.toContain('onerror=');
+  }
+
+  async verifyStatusChangeDateTime(
+    actorName: string,
+    previousStatus: string,
+    updatedStatus: string,
+    actionDate: Date,
+  ): Promise<void> {
+    const activityPattern = new RegExp(
+      `${this.escapeRegExp(actorName)}\\s+changed status from\\s+${this.escapeRegExp(previousStatus)}\\s+to\\s+${this.escapeRegExp(updatedStatus)}`,
+      'i',
+    );
+    const statusHeader = this.page
+      .locator('div.flex.min-w-0.flex-wrap.items-center.gap-4')
+      .filter({ hasText: activityPattern })
+      .last();
+
+    await expect(statusHeader).toBeVisible({ timeout: 30000 });
+    await expect(statusHeader).toContainText(this.formatStatusChangeTimestamp(actionDate));
+  }
+
+  private formatStatusChangeTimestamp(date: Date): string {
+    const now = new Date();
+    const sameDay = date.toDateString() === now.toDateString();
+    const timeString = this.formatTime(date);
+
+    if (sameDay) {
+      return `Today, ${timeString}`;
+    }
+
+    const dateString = date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+    return `${dateString}, ${timeString}`;
+  }
+
+  private formatTime(date: Date): string {
+    let hours = date.getHours();
+    const minutes = date.getMinutes();
+    const meridiem = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12 || 12;
+    const paddedMinutes = minutes.toString().padStart(2, '0');
+    return `${hours}:${paddedMinutes} ${meridiem}`;
+  }
+
   async verifyChronologicalCollaborationTimeline(
     actorName: string,
     addedUserName: string,
