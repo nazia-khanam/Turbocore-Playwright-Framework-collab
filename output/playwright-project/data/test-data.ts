@@ -1,4 +1,5 @@
 /// <reference types="node" />
+import { uniqueTitle } from '../utils/helpers';
 
 /**
  * Central test-data registry for TurboCore Playwright tests.
@@ -21,14 +22,14 @@ export const testData = {
     userPassword: process.env.TEST_USER_PASSWORD || 'TODO-password',
 
     // Workstream creation
-    newWorkstreamTitle: 'TODO-test-workstream-title',
+    newWorkstreamTitle: uniqueTitle('BA-collab'),
     // TIP: use uniqueTitle('BA-smoke') from utils/helpers.ts to avoid collisions
 
     // Chat messages
-    firstMessage:      'TODO-first-message-to-ba-agent',
+    firstMessage:      'Hello team, please review this collaborator update.',
     followUpMessages: [
-      'TODO-follow-up-message-1',
-      'TODO-follow-up-message-2',
+      'Please add the final requirements here.',
+      'Can the BA agent summarize the current intake?',
     ],
 
     // @-mention: partial name of a real same-tenant staging user
@@ -36,8 +37,8 @@ export const testData = {
 
     // Collaboration/member update
     existingWorkstreamId: process.env.BA_EXISTING_WORKSTREAM_ID || 'TODO-workstream-id',
-    actorDisplayName: process.env.BA_ACTOR_DISPLAY_NAME || 'TODO-actor-display-name',
-    collaboratorDisplayName: process.env.BA_COLLABORATOR_DISPLAY_NAME || 'TODO-collaborator-display-name',
+    actorDisplayName: process.env.BA_ACTOR_DISPLAY_NAME || 'Maruthi',
+    collaboratorDisplayName: process.env.BA_COLLABORATOR_DISPLAY_NAME || 'Umesha',
     removableMemberDisplayName: process.env.BA_REMOVABLE_MEMBER_DISPLAY_NAME || 'TODO-removable-member-display-name',
   },
 
@@ -58,6 +59,33 @@ export const testData = {
     nearRealTimeThresholdMs: 5000,
     email: process.env.TEST_USER_EMAIL || 'TODO-user@example.com',
     password: process.env.TEST_USER_PASSWORD || 'TODO-password',
+  },
+
+  /** QA feature test data */
+  qa: {
+    userEmail:    process.env.QA_USER_EMAIL    || process.env.TEST_USER_EMAIL    || 'TODO-qa-user@example.com',
+    userPassword: process.env.QA_USER_PASSWORD || process.env.TEST_USER_PASSWORD || 'TODO-password',
+
+    // Workstream creation
+    newWorkstreamTitle: uniqueTitle('QA-collab'),
+
+    // Existing workstream for testing
+    existingWorkstreamId: process.env.QA_EXISTING_WORKSTREAM_ID || 'TODO-qa-workstream-id',
+
+    // Chat messages
+    firstMessage: 'Hello QA team, please review this collaborator update.',
+
+    // Collaboration/member update
+    actorDisplayName: process.env.QA_ACTOR_DISPLAY_NAME || 'maruthiprasad.pc',
+    initialInviteeDisplayName: process.env.QA_INITIAL_INVITEE_DISPLAY_NAME || 'nazia.khanam',
+    collaboratorDisplayName: process.env.QA_COLLABORATOR_DISPLAY_NAME || 'umesha.kn',
+    removableMemberDisplayName: process.env.QA_REMOVABLE_MEMBER_DISPLAY_NAME || 'nazia.khanam',
+    assigneeSearchText: process.env.QA_ASSIGNEE_SEARCH_TEXT || 'umesha.kn',
+    assigneeDisplayName: process.env.QA_ASSIGNEE_DISPLAY_NAME || 'umesha.kn',
+    statusActorDisplayName: process.env.QA_STATUS_ACTOR_DISPLAY_NAME || 'maruthiprasad.pc',
+    previousStatus: process.env.QA_PREVIOUS_STATUS || 'Drafting',
+    targetStatus: process.env.QA_TARGET_STATUS || 'In Review',
+    statusChangeComment: process.env.QA_STATUS_CHANGE_COMMENT || 'Moving this QA workstream to review.',
   },
 
 } as const;

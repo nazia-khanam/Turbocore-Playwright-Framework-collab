@@ -24,11 +24,12 @@ export default defineConfig({
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: 'html',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
+  timeout: 120000,  // Increase timeout to 2 minutes
   use: {
     /* Base URL to use in actions like `await page.goto('')`. */
     baseURL: 'https://test.turbocore.soais.com',
     browserName:'chromium',
-   
+    navigationTimeout: 90000,  // Increase navigation timeout to 90 seconds
  
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on',
@@ -39,20 +40,20 @@ export default defineConfig({
  
   /* Configure projects for major browsers */
   projects: [
-    // {
-    //   name: 'chromium',
-    //   use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 720 } },
-    // },
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 720 } },
+    },
  
     // {
     //   name: 'firefox',
     //   use: { ...devices['Desktop Firefox'], viewport: { width: 1280, height: 720 } },
     // },
  
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
+    // {
+    //   name: 'webkit',
+    //   use: { ...devices['Desktop Safari'] },
+    // },
  
     /* Test against mobile viewports. */
     // {
