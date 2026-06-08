@@ -5,78 +5,6 @@ import { stateStorage } from '../utils/state.storage';
 
 const featureWorkstreamTitle = 'Collaboration-update-features';
 
-const statusSequence = [
-  'Drafting',
-  'In Review',
-  'Committed',
-  'In Execution',
-  'Completed',
-  'Archived',
-];
-
-type StatusChange = {
-  previousStatus: string;
-  nextStatus: string;
-  comment: string;
-};
-
-type AssigneeTarget = {
-  searchText: string;
-  displayName: string;
-};
-
-function getNextStatus(current: string): string {
-  const idx = statusSequence.findIndex(s => new RegExp(`^${s}$`, 'i').test(current));
-
-  if (idx === -1 || /archived/i.test(current)) {
-    return statusSequence[0];
-  }
-
-  return statusSequence[(idx + 1) % statusSequence.length];
-}
-
-function statusChangeCommentFor(status: string): string {
-  return `Moving this QA workstream to ${status}.`;
-}
-
-async function ensureChangeStatus(qaPage: QaPage, title: string, comment?: string): Promise<StatusChange> {
-  const current = (await qaPage.getWorkstreamStatus(title)) || '';
-  const next = getNextStatus(current);
-  const statusComment = comment ?? statusChangeCommentFor(next);
-
-  await qaPage.openChatFromList(title);
-  await qaPage.changeWorkstreamStatus(next, statusComment);
-  return {
-    previousStatus: current,
-    nextStatus: next,
-    comment: statusComment,
-  };
-}
-
-async function getNextAssigneeTarget(qaPage: QaPage, title: string): Promise<AssigneeTarget> {
-  const currentAssignee = (await qaPage.getWorkstreamAssignee(title)) || '';
-  const candidates: AssigneeTarget[] = [
-    {
-      searchText: testData.qa.assigneeSearchText,
-      displayName: testData.qa.assigneeDisplayName,
-    },
-    {
-      searchText: testData.qa.removableMemberDisplayName,
-      displayName: testData.qa.removableMemberDisplayName,
-    },
-  ];
-
-  const currentIndex = candidates.findIndex(candidate => (
-    new RegExp(`^${candidate.displayName}$`, 'i').test(currentAssignee)
-  ));
-
-  if (currentIndex === -1) {
-    return candidates[0];
-  }
-
-  return candidates[(currentIndex + 1) % candidates.length];
-}
-
 /**
  * TC_UP_NOTIF_001
  * Verify a user-added collaboration update appears in the QA workstream chat timeline.
@@ -115,7 +43,7 @@ test.describe('Workstream Collaboration Updates', () => {
     });
 
     await qaPage.goToQaList();
-    const assigneeTarget = await getNextAssigneeTarget(qaPage, workstreamTitle);
+    const assigneeTarget = await qaPage.getNextAssigneeTarget(workstreamTitle);
     await qaPage.openChatFromList(workstreamTitle);
     
     // Remove both nazia.khanam and umesha.kn from the permanent shared workstream first.
@@ -174,7 +102,7 @@ test.describe('Workstream Collaboration Updates', () => {
     });
 
     await qaPage.goToQaList();
-    const assigneeTarget = await getNextAssigneeTarget(qaPage, workstreamTitle);
+    const assigneeTarget = await qaPage.getNextAssigneeTarget(workstreamTitle);
     await qaPage.openChatFromList(workstreamTitle);
     await qaPage.removeCollaboratorIfPresent(assigneeTarget.displayName);
     await qaPage.assignUser(
@@ -204,7 +132,7 @@ test.describe('Workstream Collaboration Updates', () => {
 
     await qaPage.goToQaList();
     await qaPage.openChatFromList(workstreamTitle);
-    const statusChange = await ensureChangeStatus(qaPage, workstreamTitle);
+    const statusChange = await qaPage.ensureChangeStatus(workstreamTitle);
     await qaPage.verifyStatusChangeActivityBlock(
       testData.qa.statusActorDisplayName,
       statusChange.previousStatus,
@@ -226,9 +154,10 @@ test.describe('Workstream Collaboration Updates', () => {
     await qaPage.goToQaList();
     const currentStatus = (await qaPage.getWorkstreamStatus(workstreamTitle)) || testData.qa.previousStatus;
     await qaPage.openChatFromList(workstreamTitle);
+    const nextStatus = qaPage.getNextStatus(currentStatus);
     await qaPage.verifyMandatoryStatusCommentValidation(
-      getNextStatus(currentStatus),
-      statusChangeCommentFor(getNextStatus(currentStatus)),
+      nextStatus,
+      qaPage.getStatusChangeComment(nextStatus),
     );
   });
 
@@ -244,7 +173,7 @@ test.describe('Workstream Collaboration Updates', () => {
     });
 
     await qaPage.goToQaList();
-    const assigneeTarget = await getNextAssigneeTarget(qaPage, workstreamTitle);
+    const assigneeTarget = await qaPage.getNextAssigneeTarget(workstreamTitle);
     await qaPage.openChatFromList(workstreamTitle);
     await qaPage.sendMessage(testData.qa.firstMessage);
     await qaPage.removeCollaboratorIfPresent(timelineCollaborator);
@@ -254,7 +183,7 @@ test.describe('Workstream Collaboration Updates', () => {
       assigneeTarget.searchText,
       assigneeTarget.displayName,
     );
-    const statusChange = await ensureChangeStatus(qaPage, workstreamTitle);
+    const statusChange = await qaPage.ensureChangeStatus(workstreamTitle);
     await qaPage.verifyChronologicalCollaborationTimeline(
       testData.qa.actorDisplayName,
       timelineCollaborator,
@@ -352,7 +281,7 @@ Ensure the full comment remains visible, untruncated, and safely rendered.`;
 
     await qaPage.goToQaList();
     await qaPage.openChatFromList(workstreamTitle);
-    const statusChange = await ensureChangeStatus(qaPage, workstreamTitle, longComment);
+    const statusChange = await qaPage.ensureChangeStatus(workstreamTitle, longComment);
 
     await qaPage.verifyStatusCommentRenderingRobustness(
       testData.qa.actorDisplayName,
@@ -375,7 +304,7 @@ Ensure the full comment remains visible, untruncated, and safely rendered.`;
 
     await qaPage.goToQaList();
     await qaPage.openChatFromList(workstreamTitle);
-    const statusChange = await ensureChangeStatus(qaPage, workstreamTitle);
+    const statusChange = await qaPage.ensureChangeStatus(workstreamTitle);
 
     await qaPage.verifyStatusChangeDateTime(
       testData.qa.actorDisplayName,

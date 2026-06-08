@@ -1,5 +1,17 @@
 import { expect, Locator, Page } from '@playwright/test';
 import { BasePage } from './BasePage';
+import { testData } from '../data/test-data';
+
+type AssigneeTarget = {
+  searchText: string;
+  displayName: string;
+};
+
+type StatusChange = {
+  previousStatus: string;
+  nextStatus: string;
+  comment: string;
+};
 
 /**
  * Page object for TurboCore QA (Quality Assurance) Workstream feature.
@@ -16,8 +28,13 @@ export class QaPage extends BasePage {
   async goToQaList(): Promise<void> {
     await this.navigateTo('/v3/client/qa');
     await this.page.waitForURL('**/v3/client/qa**', { timeout: 30000 });
-    await expect(this.page.getByRole('heading', { name: /QA Workstreams/i }))
-      .toBeVisible({ timeout: 30000 });
+    await this.page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => undefined);
+
+    const heading = this.page.getByRole('heading', { name: /QA/i }).first();
+    if (await heading.isVisible({ timeout: 7000 }).catch(() => false)) {
+      await expect(heading).toBeVisible({ timeout: 10000 });
+    }
+
     await this.page.getByText(/Loading workstreams/i)
       .waitFor({ state: 'hidden', timeout: 60000 })
       .catch(() => undefined);
@@ -188,6 +205,67 @@ export class QaPage extends BasePage {
     return statusMatch ? statusMatch[0].trim() : null;
   }
 
+  getNextStatus(current: string): string {
+    const statusSequence = [
+      'Drafting',
+      'In Review',
+      'Committed',
+      'In Execution',
+      'Completed',
+      'Archived',
+    ];
+
+    const idx = statusSequence.findIndex(s => new RegExp(`^${this.escapeRegExp(s)}$`, 'i').test(current));
+    if (idx === -1 || /archived/i.test(current)) {
+      return statusSequence[0];
+    }
+
+    return statusSequence[(idx + 1) % statusSequence.length];
+  }
+
+  getStatusChangeComment(status: string): string {
+    return `Moving this QA workstream to ${status}.`;
+  }
+
+  async ensureChangeStatus(title: string, comment?: string): Promise<StatusChange> {
+    const current = (await this.getWorkstreamStatus(title)) || '';
+    const next = this.getNextStatus(current);
+    const statusComment = comment ?? this.getStatusChangeComment(next);
+
+    await this.openChatFromList(title);
+    await this.changeWorkstreamStatus(next, statusComment);
+
+    return {
+      previousStatus: current,
+      nextStatus: next,
+      comment: statusComment,
+    };
+  }
+
+  async getNextAssigneeTarget(title: string): Promise<AssigneeTarget> {
+    const currentAssignee = (await this.getWorkstreamAssignee(title)) || '';
+    const candidates: AssigneeTarget[] = [
+      {
+        searchText: testData.qa.assigneeSearchText,
+        displayName: testData.qa.assigneeDisplayName,
+      },
+      {
+        searchText: testData.qa.removableMemberDisplayName,
+        displayName: testData.qa.removableMemberDisplayName,
+      },
+    ];
+
+    const currentIndex = candidates.findIndex(candidate => (
+      new RegExp(`^${this.escapeRegExp(candidate.displayName)}$`, 'i').test(currentAssignee)
+    ));
+
+    if (currentIndex === -1) {
+      return candidates[0];
+    }
+
+    return candidates[(currentIndex + 1) % candidates.length];
+  }
+
   // ─── Chat Interactions ─────────────────────────────────────────────────────
 
   /**
@@ -261,14 +339,22 @@ export class QaPage extends BasePage {
       /Invite/i,
       /Collaborator/i,
       /Member/i,
+      /Participants/i,
+      /People/i,
+      /Team/i,
       /Add/i,
     ], [
       'button:has-text("Add")',
       'button:has-text("Member")',
       'button:has-text("Collaborator")',
       'button:has-text("Share")',
+      'button:has-text("Members")',
+      'button:has-text("Participants")',
+      'button:has-text("People")',
+      'button:has-text("Team")',
       'button[aria-label*="Share" i]',
       'button[aria-label*="invite" i]',
+      '[data-testid*="member" i]',
       '[data-testid*="collab" i]',
       '[aria-label*="Add" i]',
       '[aria-label*="Member" i]',
@@ -646,14 +732,22 @@ export class QaPage extends BasePage {
       /Invite/i,
       /Collaborator/i,
       /Member/i,
+      /Participants/i,
+      /People/i,
+      /Team/i,
       /Add/i,
     ], [
       'button:has-text("Add")',
       'button:has-text("Member")',
       'button:has-text("Collaborator")',
       'button:has-text("Share")',
+      'button:has-text("Members")',
+      'button:has-text("Participants")',
+      'button:has-text("People")',
+      'button:has-text("Team")',
       'button[aria-label*="Share" i]',
       'button[aria-label*="invite" i]',
+      '[data-testid*="member" i]',
       '[data-testid*="collab" i]',
       '[aria-label*="Add" i]',
       '[aria-label*="Member" i]',

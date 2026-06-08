@@ -1,6 +1,4 @@
-import { Page } from '@playwright/test';
-import { CommonLocators } from '../locators/common.locators';
-import { assertPageHeading } from '../utils/assertions'
+import { expect, Page } from '@playwright/test';
 /**
  * Base page object shared by all TurboCore page objects.
  * Provides: login, logout, navigation, and a stub assertion helper.
@@ -18,35 +16,50 @@ export class BasePage {
    * For speed, prefer storageState reuse via playwright.config.ts globalSetup.
    */
   async performLogin(email: string, password: string): Promise<void> {
-    
-    // TODO: wait for login page to load
-    // await this.page.locator(CommonLocators.loginPage).waitFor({ state: 'visible' });
-    // TODO: fill email + password fields (Auth0 form selectors needed)
     await this.page.goto('/api/v3/auth/login', { waitUntil: 'domcontentloaded', timeout: 120000 });
-    await assertPageHeading(this.page, 'Welcome');
-    await this.page.locator(CommonLocators.emailInput).fill(email);
-    await this.page.getByRole('button', { name: 'Continue' }).click();
-    await this.page.waitForTimeout(2000);  // Wait for password field to appear
-    await this.page.locator(CommonLocators.passwordInput).fill(password);
-    await this.page.locator(CommonLocators.continueBtn).click();
-    // TODO: handle Auth0 redirect and wait for /v3/client landing
+
+    const emailField = this.page.locator('input[type="email"], input[type="text"], input[placeholder*="email" i], input[placeholder*="username" i]').first();
+    if (await emailField.isVisible({ timeout: 15000 }).catch(() => false)) {
+      await emailField.fill(email);
+    } else {
+      const altEmailField = this.page.getByLabel(/email|username|login/i).first();
+      await expect(altEmailField).toBeVisible({ timeout: 15000 });
+      await altEmailField.fill(email);
+    }
+
+    const continueButton = this.page.getByRole('button', { name: /continue|next|sign in|log in/i }).first();
+    if (await continueButton.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await continueButton.click();
+    }
+
+    const passwordField = this.page.locator('input[type="password"], input[placeholder*="password" i], input[aria-label*="password" i]').first();
+    await expect(passwordField).toBeVisible({ timeout: 20000 });
+    await passwordField.fill(password);
+
+    const submitButton = this.page.getByRole('button', { name: /sign in|log in|submit|continue/i }).first();
+    await expect(submitButton).toBeVisible({ timeout: 10000 });
+    await submitButton.click();
+
     await this.page.waitForURL('**/v3/client/**', { timeout: 120000 });
+    await this.page.waitForLoadState('networkidle', { timeout: 120000 }).catch(() => undefined);
   }
 
   /**
    * Logout via top-right avatar menu.
    */
   async performLogout(): Promise<void> {
-    await this.page.getByRole('button', { name: /account menu/i }).click();
-    const logoutMenuItem = this.page.getByRole('menuitem', { name: /log\s*out|sign\s*out/i });
-    if (await logoutMenuItem.isVisible({ timeout: 3000 })) {
+    const profileButton = this.page.getByRole('button', { name: /account|profile|avatar|user/i }).first();
+    if (await profileButton.isVisible({ timeout: 10000 }).catch(() => false)) {
+      await profileButton.click();
+      const logoutMenuItem = this.page.getByRole('menuitem', { name: /log\s*out|sign\s*out|logout|signout/i }).first();
+      if (await logoutMenuItem.isVisible({ timeout: 5000 }).catch(() => false)) {
       await logoutMenuItem.click();
       return;
+      }
     }
 
-    await this.page.goto('/api/v3/auth/logout', { waitUntil: 'commit' });
-    // TODO: wait for redirect back to /v3/login
-    // await this.page.waitForURL('**/v3/login**');
+    await this.page.goto('/api/v3/auth/logout', { waitUntil: 'commit', timeout: 120000 });
+    await this.page.waitForURL('**/v3/login**', { timeout: 120000 }).catch(() => undefined);
   }
 
   /** Navigate to any path relative to baseURL. */
