@@ -2,7 +2,10 @@
   "maruthi": {
     "email": "maruthiprasad.pc@soais.com",
     "password": "Maruthi@1234",
-    "timestamp": 1780568982859,
-    "workstreamId": "e1d76115-d57a-45a2-b61a-b073757a8cf0"
+    "timestamp": 1780913420676,
+    "workstreamId": "e1d76115-d57a-45a2-b61a-b073757a8cf0",
+    "collaborators": [
+      "umesha.kn"
+    ]
   }
 }
