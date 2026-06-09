@@ -1,9 +1,27 @@
-import { expect, test } from '@playwright/test';
+import { expect, Page, test } from '@playwright/test';
 import { QaPage } from '../pages/QaPage';
 import { testData } from '../data/test-data';
-import { stateStorage } from '../utils/state.storage';
 
-const featureWorkstreamTitle = 'Collaboration-update-features';
+const workstreamTitle = 'Collaboration-update-features';
+
+async function loginAndOpenWorkstream(page: Page): Promise<QaPage> {
+  const qaPage = new QaPage(page);
+
+  await qaPage.performLogin(testData.qa.userEmail, testData.qa.userPassword);
+  await qaPage.goToQaList();
+  await qaPage.openChatFromList(workstreamTitle);
+
+  return qaPage;
+}
+
+async function loginAndOpenQaList(page: Page): Promise<QaPage> {
+  const qaPage = new QaPage(page);
+
+  await qaPage.performLogin(testData.qa.userEmail, testData.qa.userPassword);
+  await qaPage.goToQaList();
+
+  return qaPage;
+}
 
 /**
  * TC_UP_NOTIF_001
@@ -18,38 +36,23 @@ test.describe('Workstream Collaboration Updates', () => {
     const qaPage = new QaPage(page);
 
     await qaPage.performLogin(testData.qa.userEmail, testData.qa.userPassword);
-    stateStorage.saveUserSession('maruthi', {
-      email: testData.qa.userEmail,
-      password: testData.qa.userPassword,
-    });
 
-    const exists = await qaPage.openExistingWorkstream(featureWorkstreamTitle);
+    const exists = await qaPage.openExistingWorkstream(workstreamTitle);
     expect(
       exists,
-      `Permanent workstream "${featureWorkstreamTitle}" must already exist. This suite does not create replacement workstreams.`,
+      `Permanent workstream "${workstreamTitle}" must already exist. This suite does not create replacement workstreams.`,
     ).toBe(true);
 
     await context.close();
   });
 
   test('TC_UP_NOTIF_002: User-removed collaboration update displays in chat timeline', async ({ page }) => {
-    const qaPage = new QaPage(page);
-    const workstreamTitle = featureWorkstreamTitle;
-
-    await qaPage.performLogin(testData.qa.userEmail, testData.qa.userPassword);
-    stateStorage.saveUserSession('maruthi', {
-      email: testData.qa.userEmail,
-      password: testData.qa.userPassword,
-    });
-
-    await qaPage.goToQaList();
+    const qaPage = await loginAndOpenQaList(page);
     const assigneeTarget = await qaPage.getNextAssigneeTarget(workstreamTitle);
     await qaPage.openChatFromList(workstreamTitle);
-    
-    // Remove both nazia.khanam and umesha.kn from the permanent shared workstream first.
+
     await qaPage.addCollaboratorIfMissing(testData.qa.removableMemberDisplayName);
     await qaPage.addCollaboratorIfMissing(testData.qa.assigneeDisplayName);
-
     await qaPage.assignUser(assigneeTarget.searchText, assigneeTarget.displayName);
 
     await qaPage.removeCollaboratorIfPresent(testData.qa.removableMemberDisplayName);
@@ -66,24 +69,13 @@ test.describe('Workstream Collaboration Updates', () => {
   });
 
   test('TC_UP_NOTIF_001: User-added collaboration update displays in chat timeline', async ({ page }) => {
-    const qaPage = new QaPage(page);
-    const workstreamTitle = featureWorkstreamTitle;
+    const qaPage = await loginAndOpenWorkstream(page);
 
-    await qaPage.performLogin(testData.qa.userEmail, testData.qa.userPassword);
-    stateStorage.saveUserSession('maruthi', {
-      email: testData.qa.userEmail,
-      password: testData.qa.userPassword,
-    });
-
-    await qaPage.goToQaList();
-    await qaPage.openChatFromList(workstreamTitle);
     await qaPage.verifyCurrentChatTitle(workstreamTitle);
     await qaPage.sendMessage(testData.qa.firstMessage);
 
-    // Add Umesha back to the same permanent shared workstream.
     await qaPage.removeCollaboratorIfPresent(testData.qa.collaboratorDisplayName);
     await qaPage.addCollaborator(testData.qa.collaboratorDisplayName);
-    stateStorage.addCollaborator('maruthi', testData.qa.collaboratorDisplayName);
 
     await qaPage.verifyUserAddedCollaborationUpdate(
       testData.qa.actorDisplayName,
@@ -92,17 +84,9 @@ test.describe('Workstream Collaboration Updates', () => {
   });
 
   test('TC_UP_NOTIF_003: Assignee-change collaboration update displays without actor name', async ({ page }) => {
-    const qaPage = new QaPage(page);
-    const workstreamTitle = featureWorkstreamTitle;
-
-    await qaPage.performLogin(testData.qa.userEmail, testData.qa.userPassword);
-    stateStorage.saveUserSession('maruthi', {
-      email: testData.qa.userEmail,
-      password: testData.qa.userPassword,
-    });
-
-    await qaPage.goToQaList();
+    const qaPage = await loginAndOpenQaList(page);
     const assigneeTarget = await qaPage.getNextAssigneeTarget(workstreamTitle);
+
     await qaPage.openChatFromList(workstreamTitle);
     await qaPage.removeCollaboratorIfPresent(assigneeTarget.displayName);
     await qaPage.assignUser(
@@ -121,18 +105,9 @@ test.describe('Workstream Collaboration Updates', () => {
   });
 
   test('TC_UP_NOTIF_004: Status-change activity block displays full details in chat timeline', async ({ page }) => {
-    const qaPage = new QaPage(page);
-    const workstreamTitle = featureWorkstreamTitle;
-
-    await qaPage.performLogin(testData.qa.userEmail, testData.qa.userPassword);
-    stateStorage.saveUserSession('maruthi', {
-      email: testData.qa.userEmail,
-      password: testData.qa.userPassword,
-    });
-
-    await qaPage.goToQaList();
-    await qaPage.openChatFromList(workstreamTitle);
+    const qaPage = await loginAndOpenWorkstream(page);
     const statusChange = await qaPage.ensureChangeStatus(workstreamTitle);
+
     await qaPage.verifyStatusChangeActivityBlock(
       testData.qa.statusActorDisplayName,
       statusChange.previousStatus,
@@ -142,19 +117,12 @@ test.describe('Workstream Collaboration Updates', () => {
   });
 
   test('TC_UP_NOTIF_006: Status change comment is mandatory for empty and whitespace-only input', async ({ page }) => {
-    const qaPage = new QaPage(page);
-    const workstreamTitle = featureWorkstreamTitle;
-
-    await qaPage.performLogin(testData.qa.userEmail, testData.qa.userPassword);
-    stateStorage.saveUserSession('maruthi', {
-      email: testData.qa.userEmail,
-      password: testData.qa.userPassword,
-    });
-
-    await qaPage.goToQaList();
+    const qaPage = await loginAndOpenQaList(page);
     const currentStatus = (await qaPage.getWorkstreamStatus(workstreamTitle)) || testData.qa.previousStatus;
+
     await qaPage.openChatFromList(workstreamTitle);
     const nextStatus = qaPage.getNextStatus(currentStatus);
+
     await qaPage.verifyMandatoryStatusCommentValidation(
       nextStatus,
       qaPage.getStatusChangeComment(nextStatus),
@@ -162,17 +130,9 @@ test.describe('Workstream Collaboration Updates', () => {
   });
 
   test('TC_UP_NOTIF_009: Collaboration updates render chronologically with normal chat messages', async ({ page }) => {
-    const qaPage = new QaPage(page);
-    const workstreamTitle = featureWorkstreamTitle;
+    const qaPage = await loginAndOpenQaList(page);
     const timelineCollaborator = testData.qa.removableMemberDisplayName;
 
-    await qaPage.performLogin(testData.qa.userEmail, testData.qa.userPassword);
-    stateStorage.saveUserSession('maruthi', {
-      email: testData.qa.userEmail,
-      password: testData.qa.userPassword,
-    });
-
-    await qaPage.goToQaList();
     const assigneeTarget = await qaPage.getNextAssigneeTarget(workstreamTitle);
     await qaPage.openChatFromList(workstreamTitle);
     await qaPage.sendMessage(testData.qa.firstMessage);
@@ -196,18 +156,9 @@ test.describe('Workstream Collaboration Updates', () => {
   });
 
   test('TC_UP_NOTIF_011: Collaboration update appears immediately in messages section without page refresh', async ({ page }) => {
-    const qaPage = new QaPage(page);
-    const workstreamTitle = featureWorkstreamTitle;
+    const qaPage = await loginAndOpenWorkstream(page);
     const realtimeCollaborator = testData.qa.removableMemberDisplayName;
 
-    await qaPage.performLogin(testData.qa.userEmail, testData.qa.userPassword);
-    stateStorage.saveUserSession('maruthi', {
-      email: testData.qa.userEmail,
-      password: testData.qa.userPassword,
-    });
-
-    await qaPage.goToQaList();
-    await qaPage.openChatFromList(workstreamTitle);
     const currentUrl = page.url();
 
     await qaPage.removeCollaboratorIfPresent(realtimeCollaborator);
@@ -221,18 +172,9 @@ test.describe('Workstream Collaboration Updates', () => {
   });
 
   test('TC_UP_NOTIF_012: Collaboration updates remain visible after reload, refresh, logout/login, and returning to the same workstream', async ({ page }) => {
-    const qaPage = new QaPage(page);
-    const workstreamTitle = featureWorkstreamTitle;
+    const qaPage = await loginAndOpenWorkstream(page);
     const persistentCollaborator = testData.qa.removableMemberDisplayName;
 
-    await qaPage.performLogin(testData.qa.userEmail, testData.qa.userPassword);
-    stateStorage.saveUserSession('maruthi', {
-      email: testData.qa.userEmail,
-      password: testData.qa.userPassword,
-    });
-
-    await qaPage.goToQaList();
-    await qaPage.openChatFromList(workstreamTitle);
     const chatUrl = page.url();
     const urlMatch = chatUrl.match(/\/chat\/([a-zA-Z0-9-]+)/);
     const workstreamId = urlMatch ? urlMatch[1] : undefined;
@@ -264,46 +206,27 @@ test.describe('Workstream Collaboration Updates', () => {
       persistentCollaborator,
     );
   });
+
   test('TC_UP_NOTIF_016: Status-change comments preserve long multiline text, special characters, and safe rendering', async ({ page }) => {
-    const qaPage = new QaPage(page);
-    const workstreamTitle = featureWorkstreamTitle;
+    const qaPage = await loginAndOpenWorkstream(page);
+    const uniqueSuffix = `\nUniqueCommentID:${Date.now()}`;
     const longComment = `This status comment contains long text, special characters, and multiline formatting:
 - verify literal HTML tags: <script>alert("xss")</script>
 - verify bold-like text: <b>should not render as HTML</b>
 - verify special characters: !@#$%^&*()_+{}|:"<>?[];'./,\n- verify line breaks and tabs:\n\tline two\n\tline three
-Ensure the full comment remains visible, untruncated, and safely rendered.`;
+Ensure the full comment remains visible, untruncated, and safely rendered.${uniqueSuffix}`;
 
-    await qaPage.performLogin(testData.qa.userEmail, testData.qa.userPassword);
-    stateStorage.saveUserSession('maruthi', {
-      email: testData.qa.userEmail,
-      password: testData.qa.userPassword,
-    });
-
-    await qaPage.goToQaList();
-    await qaPage.openChatFromList(workstreamTitle);
-    const statusChange = await qaPage.ensureChangeStatus(workstreamTitle, longComment);
-
+    await qaPage.ensureChangeStatus(workstreamTitle, longComment);
     await qaPage.verifyStatusCommentRenderingRobustness(
       testData.qa.actorDisplayName,
-      statusChange.previousStatus,
-      statusChange.nextStatus,
       longComment,
     );
   });
 
   test('TC_UP_NOTIF_020: Status-change activity block shows the correct status-change date/time', async ({ page }) => {
-    const qaPage = new QaPage(page);
-    const workstreamTitle = featureWorkstreamTitle;
+    const qaPage = await loginAndOpenWorkstream(page);
     const actionDate = new Date();
 
-    await qaPage.performLogin(testData.qa.userEmail, testData.qa.userPassword);
-    stateStorage.saveUserSession('maruthi', {
-      email: testData.qa.userEmail,
-      password: testData.qa.userPassword,
-    });
-
-    await qaPage.goToQaList();
-    await qaPage.openChatFromList(workstreamTitle);
     const statusChange = await qaPage.ensureChangeStatus(workstreamTitle);
 
     await qaPage.verifyStatusChangeDateTime(
@@ -311,7 +234,7 @@ Ensure the full comment remains visible, untruncated, and safely rendered.`;
       statusChange.previousStatus,
       statusChange.nextStatus,
       actionDate,
+      statusChange.comment,
     );
   });
-
 });

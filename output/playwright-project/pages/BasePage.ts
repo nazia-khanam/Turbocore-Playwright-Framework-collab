@@ -53,8 +53,8 @@ export class BasePage {
       await profileButton.click();
       const logoutMenuItem = this.page.getByRole('menuitem', { name: /log\s*out|sign\s*out|logout|signout/i }).first();
       if (await logoutMenuItem.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await logoutMenuItem.click();
-      return;
+        await logoutMenuItem.click();
+        return;
       }
     }
 
@@ -64,7 +64,24 @@ export class BasePage {
 
   /** Navigate to any path relative to baseURL. */
   async navigateTo(path: string): Promise<void> {
-    await this.page.goto(path);
+    const maxAttempts = 3;
+    let attempt = 0;
+    const timeout = 300000; // 5 minutes
+    while (attempt < maxAttempts) {
+      try {
+        attempt++;
+        await this.page.goto(path, { waitUntil: 'load', timeout });
+        return;
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn(`navigateTo attempt ${attempt} failed for ${path}: ${err}`);
+        if (attempt >= maxAttempts) throw err;
+        // exponential backoff before retrying
+        const backoffMs = 2000 * attempt;
+        // eslint-disable-next-line no-await-in-loop
+        await new Promise((r) => setTimeout(r, backoffMs));
+      }
+    }
   }
 
   /**
