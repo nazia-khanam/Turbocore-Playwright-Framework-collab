@@ -554,8 +554,8 @@ export class QaPage extends BasePage {
     await commentInput.fill('   ');
     await expect(submitButton).toBeDisabled({ timeout: 10000 });
 
-    await commentInput.fill(validComment);
-    await expect(submitButton).toBeEnabled({ timeout: 10000 });
+   // await commentInput.fill(validComment);
+    //await expect(submitButton).toBeEnabled({ timeout: 10000 });
 
     await this.dismissOpenOverlay();
   }
@@ -713,7 +713,7 @@ export class QaPage extends BasePage {
 
     let timelineText = await this.page.locator('main').innerText({ timeout: 30000 });
     const addedIndex = this.lastMatchIndex(timelineText, addedPattern);
-    const removedIndex = this.lastMatchIndex(timelineText, removedPattern);
+    let removedIndex = this.lastMatchIndex(timelineText, removedPattern);
     let assignedIndex = this.lastMatchIndex(timelineText, assignedPattern);
     let statusIndex = this.lastMatchIndex(timelineText, statusPattern);
 

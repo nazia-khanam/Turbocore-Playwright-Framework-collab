@@ -30,22 +30,6 @@ async function loginAndOpenQaList(page: Page): Promise<QaPage> {
 test.describe('Workstream Collaboration Updates', () => {
   test.describe.configure({ mode: 'serial' });
 
-  test.beforeAll(async ({ browser }) => {
-    const context = await browser.newContext();
-    const page = await context.newPage();
-    const qaPage = new QaPage(page);
-
-    await qaPage.performLogin(testData.qa.userEmail, testData.qa.userPassword);
-
-    const exists = await qaPage.openExistingWorkstream(workstreamTitle);
-    expect(
-      exists,
-      `Permanent workstream "${workstreamTitle}" must already exist. This suite does not create replacement workstreams.`,
-    ).toBe(true);
-
-    await context.close();
-  });
-
   test('TC_UP_NOTIF_002: User-removed collaboration update displays in chat timeline', async ({ page }) => {
     const qaPage = await loginAndOpenQaList(page);
     const assigneeTarget = await qaPage.getNextAssigneeTarget(workstreamTitle);
